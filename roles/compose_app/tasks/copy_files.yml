@@ -1,0 +1,26 @@
+---
+- name: Ensure rsync is present
+  ansible.builtin.package:
+    name: rsync
+    state: present
+
+- name: Create deploy directory
+  ansible.builtin.file:
+    path: "{{ deploy_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Build rsync options
+  ansible.builtin.set_fact:
+    deploy_effective_rsync_opts: >-
+      {{
+        deploy_rsync_opts
+        + ((deploy_rsync_exclude_file | length > 0) | ternary(['--exclude-from=' ~ deploy_rsync_exclude_file], []))
+        + deploy_rsync_extra_opts
+      }}
+
+- name: Rsync files to remote server
+  ansible.posix.synchronize:
+    src: "{{ deploy_project_src }}/"
+    dest: "{{ deploy_dir }}/"
+    rsync_opts: "{{ deploy_effective_rsync_opts }}"

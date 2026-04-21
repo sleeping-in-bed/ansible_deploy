@@ -1,0 +1,39 @@
+---
+- name: Create Docker prune helper directory
+  ansible.builtin.file:
+    path: "{{ deploy_prune_script_dir }}"
+    state: directory
+    mode: "0755"
+  when: deploy_prune_enabled
+
+- name: Copy Docker prune helper
+  ansible.builtin.copy:
+    src: docker_prune_once.py
+    dest: "{{ deploy_prune_script_path }}"
+    mode: "0755"
+  when: deploy_prune_enabled
+
+- name: Start containers with Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_dir }}"
+    state: "{{ deploy_compose_state }}"
+    build: "{{ deploy_compose_build }}"
+    recreate: "{{ deploy_compose_recreate }}"
+    remove_orphans: "{{ deploy_compose_remove_orphans }}"
+  environment:
+    HOME: "{{ deploy_docker_home }}"
+    DOCKER_BUILDKIT: "{{ deploy_docker_buildkit }}"
+
+- name: Prune unused Docker images and build cache
+  ansible.builtin.command:
+    cmd: "python3 {{ deploy_prune_script_path }}"
+  environment:
+    DOCKER_PRUNE_LOCK_FILE: "{{ deploy_prune_lock_file }}"
+    DOCKER_PRUNE_IMAGE_UNTIL: "{{ deploy_prune_image_until }}"
+    DOCKER_PRUNE_BUILDER_UNTIL: "{{ deploy_prune_builder_until }}"
+    DOCKER_PRUNE_BUILDER_RESERVED_SPACE: "{{ deploy_prune_builder_reserved_space }}"
+    DOCKER_PRUNE_BUILDER_MAX_USED_SPACE: "{{ deploy_prune_builder_max_used_space }}"
+    DOCKER_PRUNE_BUILDER_MIN_FREE_SPACE: "{{ deploy_prune_builder_min_free_space }}"
+  register: deploy_prune_cmd
+  changed_when: deploy_prune_cmd.stdout is search('\\[docker-prune-once\\] Completed successfully')
+  when: deploy_prune_enabled

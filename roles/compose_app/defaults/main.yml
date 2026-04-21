@@ -1,0 +1,30 @@
+---
+deploy_project_src: "{{ playbook_dir | dirname }}"
+deploy_dir: ""
+
+deploy_env_files: []
+deploy_extra_files: []
+
+deploy_rsync_opts:
+  - "-avz"
+  - "--delete"
+deploy_rsync_exclude_file: "{{ deploy_project_src }}/.dockerignore"
+deploy_rsync_extra_opts: []
+
+deploy_compose_state: present
+deploy_compose_build: always
+deploy_compose_recreate: always
+deploy_compose_remove_orphans: true
+
+deploy_docker_buildkit: "1"
+deploy_docker_home: "{{ (ansible_user == 'root') | ternary('/root', '/home/' ~ ansible_user) }}"
+
+deploy_prune_enabled: true
+deploy_prune_script_dir: "{{ deploy_dir }}/.ansible_deploy"
+deploy_prune_script_path: "{{ deploy_prune_script_dir }}/docker_prune_once.py"
+deploy_prune_lock_file: "/tmp/docker_prune.lock"
+deploy_prune_image_until: "168h"
+deploy_prune_builder_until: "168h"
+deploy_prune_builder_reserved_space: "8gb"
+deploy_prune_builder_max_used_space: "15gb"
+deploy_prune_builder_min_free_space: "30gb"

@@ -1,0 +1,17 @@
+namespace: sleeping_in_bed
+name: ansible_deploy
+version: 0.1.0
+readme: README.md
+authors:
+  - sleeping-in-bed
+description: Shared Ansible deployment collection for Docker Compose projects.
+license:
+  - MIT
+tags:
+  - deployment
+  - docker
+  - compose
+repository: https://github.com/sleeping-in-bed/ansible_deploy
+dependencies:
+  ansible.posix: ">=1.5.0"
+  community.docker: ">=3.10.0"

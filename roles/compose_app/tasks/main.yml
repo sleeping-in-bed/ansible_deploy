@@ -1,0 +1,15 @@
+---
+- name: Validate deployment variables
+  ansible.builtin.include_tasks: validate.yml
+
+- name: Copy project files
+  ansible.builtin.include_tasks: copy_files.yml
+
+- name: Copy environment files
+  ansible.builtin.include_tasks: copy_env.yml
+
+- name: Copy extra files
+  ansible.builtin.include_tasks: copy_extra_files.yml
+
+- name: Run Docker operations
+  ansible.builtin.include_tasks: run_docker.yml

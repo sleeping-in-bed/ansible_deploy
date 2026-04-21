@@ -1,0 +1,50 @@
+---
+- name: Merge and copy environment files
+  when: deploy_env_files | length > 0
+  block:
+    - name: Create temporary merged env files
+      ansible.builtin.tempfile:
+        state: file
+        suffix: _merged.env
+      register: deploy_merged_env_files
+      delegate_to: localhost
+      loop: "{{ deploy_env_files }}"
+      loop_control:
+        loop_var: env_item
+        label: "{{ env_item.dst }}"
+
+    - name: Merge env files using Python script
+      ansible.builtin.command:
+        argv: "{{ ['python3', role_path ~ '/files/merge_env.py', item.path] + item.env_item.srcs }}"
+        chdir: "{{ deploy_project_src }}"
+      delegate_to: localhost
+      loop: "{{ deploy_merged_env_files.results }}"
+      loop_control:
+        label: "{{ item.env_item.dst }}"
+
+    - name: Create parent directories for merged env files
+      ansible.builtin.file:
+        path: "{{ ((item.env_item.dst is match('^/')) | ternary(item.env_item.dst, deploy_dir ~ '/' ~ item.env_item.dst)) | dirname }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ deploy_merged_env_files.results }}"
+      loop_control:
+        label: "{{ item.env_item.dst }}"
+
+    - name: Copy merged env files to remote server
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "{{ (item.env_item.dst is match('^/')) | ternary(item.env_item.dst, deploy_dir ~ '/' ~ item.env_item.dst) }}"
+        mode: "0644"
+      loop: "{{ deploy_merged_env_files.results }}"
+      loop_control:
+        label: "{{ item.env_item.dst }}"
+  always:
+    - name: Remove temporary merged env files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      delegate_to: localhost
+      loop: "{{ deploy_merged_env_files.results | default([]) }}"
+      loop_control:
+        label: "{{ item.path }}"

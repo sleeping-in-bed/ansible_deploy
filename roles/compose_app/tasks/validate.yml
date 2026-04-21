@@ -1,0 +1,86 @@
+---
+- name: Validate deploy_dir
+  ansible.builtin.assert:
+    that:
+      - deploy_dir is string
+      - deploy_dir | length > 0
+    fail_msg: "deploy_dir must be a non-empty string"
+
+- name: Validate deploy_project_src
+  ansible.builtin.assert:
+    that:
+      - deploy_project_src is string
+      - deploy_project_src | length > 0
+    fail_msg: "deploy_project_src must be a non-empty string"
+
+- name: Validate deploy_env_files
+  ansible.builtin.assert:
+    that:
+      - deploy_env_files | type_debug == "list"
+    fail_msg: "deploy_env_files must be a list, got type={{ deploy_env_files | type_debug }}, value={{ deploy_env_files | to_nice_json }}"
+
+- name: Validate each deploy_env_files item
+  ansible.builtin.assert:
+    that:
+      - env_item is mapping
+      - env_item.srcs is defined
+      - env_item.dst is defined
+      - env_item.srcs | type_debug == "list"
+      - env_item.srcs | length > 0
+      - env_item.dst is string
+      - env_item.dst | length > 0
+    fail_msg: "Invalid deploy_env_files item: {{ env_item | to_nice_json }}"
+  loop: "{{ deploy_env_files }}"
+  loop_control:
+    loop_var: env_item
+    label: "{{ env_item.dst | default('NO_DST') }}"
+
+- name: Validate deploy_extra_files
+  ansible.builtin.assert:
+    that:
+      - deploy_extra_files | type_debug == "list"
+    fail_msg: "deploy_extra_files must be a list, got type={{ deploy_extra_files | type_debug }}, value={{ deploy_extra_files | to_nice_json }}"
+
+- name: Validate each deploy_extra_files item
+  ansible.builtin.assert:
+    that:
+      - extra_item is mapping
+      - extra_item.src is defined
+      - extra_item.dst is defined
+      - extra_item.src is string
+      - extra_item.src | length > 0
+      - extra_item.dst is string
+      - extra_item.dst | length > 0
+    fail_msg: "Invalid deploy_extra_files item: {{ extra_item | to_nice_json }}"
+  loop: "{{ deploy_extra_files }}"
+  loop_control:
+    loop_var: extra_item
+    label: "{{ extra_item.dst | default('NO_DST') }}"
+
+- name: Check project source directory
+  ansible.builtin.stat:
+    path: "{{ deploy_project_src }}"
+  delegate_to: localhost
+  register: deploy_project_src_stat
+
+- name: Validate project source directory exists
+  ansible.builtin.assert:
+    that:
+      - deploy_project_src_stat.stat.exists
+      - deploy_project_src_stat.stat.isdir
+    fail_msg: "deploy_project_src must exist and be a directory: {{ deploy_project_src }}"
+
+- name: Check rsync exclude file
+  ansible.builtin.stat:
+    path: "{{ deploy_rsync_exclude_file }}"
+  delegate_to: localhost
+  register: deploy_rsync_exclude_file_stat
+  when: deploy_rsync_exclude_file | length > 0
+
+- name: Validate rsync exclude file exists
+  ansible.builtin.assert:
+    that:
+      - deploy_rsync_exclude_file_stat.stat.exists
+      - not deploy_rsync_exclude_file_stat.stat.isdir
+    fail_msg: "deploy_rsync_exclude_file must exist and be a file: {{ deploy_rsync_exclude_file }}"
+  when: deploy_rsync_exclude_file | length > 0
