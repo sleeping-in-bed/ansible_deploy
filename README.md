@@ -52,5 +52,5 @@ Or through `requirements.yml`:
 collections:
   - name: git@github.com:sleeping-in-bed/ansible_deploy.git
     type: git
-    version: v0.1.0
+    version: v0.1.1
 ```
